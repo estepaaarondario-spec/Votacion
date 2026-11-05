@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema de votación</title>
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22black%22/><text x=%2250%22 y=%2272%22 font-size=%2270%22 text-anchor=%22middle%22 fill=%22%2300ff41%22 font-family=%22monospace%22>0</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--g:#00ff41;--gt:#a6ffbd;--gd:#5fae76;--bg:#000;--box:rgba(0,12,3,.86);color-scheme:dark}
+*{box-sizing:border-box}
+html{background:#000}
+body{margin:0;color:var(--gt);font-family:'Share Tech Mono','Courier New',monospace;font-size:1rem;line-height:1.55;min-height:100vh;padding:0 16px max(30px,env(safe-area-inset-bottom))}
+#rain{position:fixed;inset:0;z-index:-2;opacity:.4}
+body::after{content:"";position:fixed;inset:0;z-index:50;pointer-events:none;background:repeating-linear-gradient(rgba(0,0,0,.28) 0 1px,transparent 1px 3px)}
+.wrap{max-width:860px;margin:0 auto;padding-top:max(26px,env(safe-area-inset-top))}
+header{text-align:center;margin-bottom:18px}
+h1{margin:0;font-weight:400;font-size:clamp(1.7rem,7vw,3rem);letter-spacing:.12em;text-transform:uppercase;color:var(--g);text-shadow:0 0 10px var(--g),0 0 28px rgba(0,255,65,.5);animation:glitch 5s infinite}
+header p{margin:6px 0 0;color:var(--gd)}
+.cur::after{content:"█";margin-left:4px;animation:blink 1s steps(2) infinite}
+h2{margin:0 0 10px;font-weight:400;font-size:1.15rem;letter-spacing:.1em;color:var(--g);text-shadow:0 0 6px rgba(0,255,65,.6)}
+h3{margin:0 0 4px;font-weight:400;font-size:1.3rem;letter-spacing:.1em;color:var(--g);text-shadow:0 0 6px rgba(0,255,65,.6)}
+#banner{display:none;margin-bottom:14px;padding:8px 12px;border:1px solid #ffd24a;color:#ffd24a;font-size:.88rem}
+#banner.show{display:block}#banner.err{border-color:#ff4a5e;color:#ff4a5e}
+.box{background:var(--box);border:1px solid rgba(0,255,65,.45);box-shadow:0 0 18px rgba(0,255,65,.14),inset 0 0 22px rgba(0,255,65,.05);padding:18px;margin-bottom:16px}
+.box.prev{border-color:#ffd24a;color:#ffd24a;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.box.danger{border-color:#ff4a5e}.box.danger h2{color:#ff4a5e;text-shadow:none}
+.lead{color:var(--gd)}.dim{color:var(--gd);font-size:.9rem}.err{color:#ff4a5e;margin:10px 0 0}
+label{display:block;margin:10px 0 4px;color:var(--gd);font-size:.9rem}
+input{font:inherit;width:100%;padding:9px 11px;background:#000;color:var(--g);border:1px solid rgba(0,255,65,.5);border-radius:0}
+input::placeholder{color:#3b7a4c}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2px;box-shadow:0 0 12px var(--g)}
+#codeIn{font-size:1.4rem;letter-spacing:.25em;text-align:center;text-transform:uppercase;margin:6px 0 12px}
+button,.btn{font:inherit;display:inline-block;text-decoration:none;cursor:pointer;color:#000;background:var(--g);border:1px solid var(--g);padding:8px 16px;letter-spacing:.08em;transition:box-shadow .15s,background .15s}
+button:hover,.btn:hover{box-shadow:0 0 18px var(--g);background:#5dff82}
+button.ghost,.btn{background:transparent;color:var(--g)}
+button.ghost:hover,.btn:hover{background:rgba(0,255,65,.15)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.cand{background:var(--box);border:1px solid rgba(0,255,65,.45);padding:16px;display:flex;flex-direction:column;gap:6px;transition:box-shadow .2s,transform .2s}
+.cand:hover{box-shadow:0 0 22px rgba(0,255,65,.45);transform:translateY(-3px)}
+.cls{margin:0;font-size:.8rem;color:var(--gd);letter-spacing:.15em}
+.cand p{margin:0}.cand .row{margin-top:auto;padding-top:10px}
+.crow{display:grid;grid-template-columns:1fr 1.4fr 1.4fr auto;gap:8px;margin-bottom:8px}
+.chk{display:flex;gap:10px;align-items:center;color:var(--gt);font-size:1rem}
+.chk input{width:20px;height:20px;accent-color:var(--g)}
+.codes{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.codes span{border:1px solid rgba(0,255,65,.5);padding:3px 10px;letter-spacing:.15em}
+.codes span.used{opacity:.35;text-decoration:line-through}
+.bar{margin-bottom:10px}.lab{display:flex;justify-content:space-between}
+.trk{height:12px;border:1px solid rgba(0,255,65,.5);background:#000}
+.trk i{display:block;height:100%;background:var(--g);box-shadow:0 0 10px var(--g);transition:width .5s}
+footer{text-align:center;margin-top:28px}
+.foot{background:none;border:0;color:#2f6b40;padding:4px 8px;font-size:.8rem;letter-spacing:.05em}
+.foot:hover{background:none;box-shadow:none;color:var(--g)}
+dialog{background:#000;color:var(--gt);border:1px solid var(--g);box-shadow:0 0 30px rgba(0,255,65,.5);padding:22px;max-width:92vw;width:420px;font-family:inherit}
+dialog::backdrop{background:rgba(0,0,0,.8)}
+@keyframes blink{50%{opacity:0}}
+@keyframes glitch{0%,92%,100%{transform:none}93%{transform:translate(-3px,0);text-shadow:3px 0 #ff2b4a,-3px 0 #2bd9ff}95%{transform:translate(3px,1px);text-shadow:-3px 0 #ff2b4a,3px 0 #2bd9ff}97%{transform:none}}
+@media(max-width:700px){.crow{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){h1,.cur::after{animation:none}.cand,.trk i{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="rain" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header><h1 id="title">Sistema de votación</h1><p id="sub" class="cur"></p></header>
+  <div id="banner" role="status"></div>
+  <main id="app"></main>
+  <footer><button class="foot" id="adminLink">acceso admin</button></footer>
+</div>
+<dialog id="dlg">
+  <p id="dlgTxt"></p>
+  <div class="row"><button class="ghost" id="dNo">CANCELAR</button><button id="dYes">CONFIRMAR VOTO</button></div>
+</dialog>
+
+<script src="config.js"></script>
+<script type="module">
+const cfg = window.APP_CONFIG, $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const genCode = () => { const a = new Uint32Array(8); crypto.getRandomValues(a); return [...a].map(x => ABC[x % 32]).join(''); };
+const fmt = c => c.slice(0,4) + '-' + c.slice(4);
+function cleanUrl(u){ u = u.trim(); if (!u) return ''; if (!/^https?:\/\//i.test(u)) u = 'https://' + u; try { return new URL(u).href; } catch(e){ return ''; } }
+
+/* ---------- Lluvia digital ---------- */
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = $('rain'), x = cv.getContext('2d'), CH = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉ0123456789';
+  let drops = [];
+  const init = () => { cv.width = innerWidth; cv.height = innerHeight; drops = Array.from({length: Math.floor(cv.width/16)}, () => -Math.random()*50|0); };
+  init(); addEventListener('resize', init);
+  setInterval(() => {
+    x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(0,0,cv.width,cv.height);
+    x.fillStyle = '#00ff41'; x.font = '16px monospace';
+    drops.forEach((y,i) => { x.fillText(CH[Math.random()*CH.length|0], i*16, y*16); drops[i] = y*16 > cv.height && Math.random() > .975 ? 0 : y+1; });
+  }, 60);
+})();
+
+/* ---------- Almacenamiento: Firebase o local ---------- */
+async function makeStore(){
+  if (cfg.firebase.projectId){
+    const B = 'https://www.gstatic.com/firebasejs/10.14.1/';
+    const {initializeApp} = await import(B + 'firebase-app.js');
+    const F = await import(B + 'firebase-firestore.js');
+    const db = F.getFirestore(initializeApp(cfg.firebase));
+    const aj = F.doc(db, 'votacion', 'ajustes'), col = n => F.collection(db, n);
+    return {
+      online: true,
+      listen: (n, cb, err) => n === 'ajustes' ? F.onSnapshot(aj, s => cb(s.exists() ? s.data() : {}), err)
+        : F.onSnapshot(col(n), s => cb(s.docs.map(d => ({id: d.id, ...d.data()}))), err),
+      saveAjustes: p => F.setDoc(aj, p, {merge: true}),
+      saveCand: (id, d) => id ? F.setDoc(F.doc(db, 'candidatos', id), d, {merge: true}) : F.addDoc(col('candidatos'), d),
+      delCand: id => F.deleteDoc(F.doc(db, 'candidatos', id)),
+      addCodes: async cs => { const b = F.writeBatch(db); cs.forEach(c => b.set(F.doc(db, 'codigos', c), {t: Date.now()})); await b.commit(); },
+      check: async code => { const [a, b] = await Promise.all([F.getDoc(F.doc(db, 'codigos', code)), F.getDoc(F.doc(db, 'votos', code))]); return {valid: a.exists(), voted: b.exists()}; },
+      vote: (code, c) => F.setDoc(F.doc(db, 'votos', code), {c, t: Date.now()}),
+      resetVotes: async () => {
+        const s = await F.getDocs(col('votos')); let b = F.writeBatch(db), n = 0;
+        for (const d of s.docs){ b.delete(d.ref); if (++n % 400 === 0){ await b.commit(); b = F.writeBatch(db); } }
+        await b.commit();
+      }
+    };
+  }
+  const K = 'matrix-vote-local', ls = new Map();
+  let data; try { data = JSON.parse(localStorage.getItem(K)); } catch(e){}
+  data = data || {ajustes: {abierta: true}, codigos: [], votos: [],
+    candidatos: [1,2,3].map(i => ({id: 'c' + i, orden: i, codigo: 'SUJETO 0' + i, enlace: '', desc: i === 1 ? 'Descripción de ejemplo.' : ''}))};
+  const save = () => { try { localStorage.setItem(K, JSON.stringify(data)); } catch(e){} ls.forEach((set, n) => set.forEach(cb => cb(data[n]))); };
+  return {
+    online: false,
+    listen: (n, cb) => { if (!ls.has(n)) ls.set(n, new Set()); ls.get(n).add(cb); cb(data[n]); return () => ls.get(n).delete(cb); },
+    saveAjustes: async p => { Object.assign(data.ajustes, p); save(); },
+    saveCand: async (id, d) => { if (id) data.candidatos = data.candidatos.map(x => x.id === id ? {...x, ...d} : x); else data.candidatos.push({id: 'c' + Date.now(), ...d}); save(); },
+    delCand: async id => { data.candidatos = data.candidatos.filter(x => x.id !== id); save(); },
+    addCodes: async cs => { cs.forEach(c => data.codigos.push({id: c, t: Date.now()})); save(); },
+    check: async code => ({valid: data.codigos.some(x => x.id === code), voted: data.votos.some(x => x.id === code)}),
+    vote: async (code, c) => { data.votos.push({id: code, c, t: Date.now()}); save(); },
+    resetVotes: async () => { data.votos = []; save(); }
+  };
+}
+
+/* ---------- Estado ---------- */
+const state = {ajustes: {}, candidatos: [], codigos: [], votos: []};
+let store, isAdmin = false, view = 'alumno', preview = false, step = 'login', session = '', err = '', confirmId = null, typing = false, pending = false;
+const A = () => ({titulo: 'Sistema de votación', subtitulo: 'Tu voto es secreto. Elegí con cuidado.', abierta: false, resultados: false, ...state.ajustes});
+const cands = () => [...state.candidatos].sort((a, b) => (a.orden || 0) - (b.orden || 0));
+const tally = () => { const n = {}; state.votos.forEach(v => n[v.c] = (n[v.c] || 0) + 1); return n; };
+const subs = {};
+function status(msg, cls){ const b = $('banner'); b.textContent = msg || ''; b.className = msg ? 'show ' + (cls || '') : ''; }
+const fail = e => status('ERROR DE BASE DE DATOS (' + (e.code || e.message) + '). Revisá las reglas de Firestore y config.js.', 'err');
+function sub(name, on){
+  if (on && !subs[name]) subs[name] = store.listen(name, d => { state[name] = d; if (name === 'ajustes') syncSubs(); render(); }, fail);
+  if (!on && subs[name]){ subs[name](); delete subs[name]; state[name] = []; }
+}
+function syncSubs(){ sub('codigos', isAdmin); sub('votos', isAdmin || !!A().resultados); }
+
+/* ---------- Vistas ---------- */
+function resultsHtml(){
+  const cs = cands(), n = tally(), tot = state.votos.length;
+  if (!cs.length) return '<p class="dim">Sin candidatos.</p>';
+  return cs.map(c => { const v = n[c.id] || 0, p = tot ? Math.round(v*100/tot) : 0;
+    return `<div class="bar"><div class="lab"><span>${esc(c.codigo)}</span><span>${v} · ${p}%</span></div><div class="trk"><i style="width:${p}%"></i></div></div>`; }).join('')
+    + `<p class="dim">Total de votos: ${tot}</p>`;
+}
+const card = (c, votable) => `<article class="cand"><h3>${esc(c.codigo)}</h3><p class="cls">[ IDENTIDAD CLASIFICADA ]</p>${c.desc ? `<p>${esc(c.desc)}</p>` : ''}
+  <div class="row">${c.enlace ? `<a class="btn" href="${esc(c.enlace)}" target="_blank" rel="noopener noreferrer">VER TRABAJO</a>` : ''}${votable ? `<button data-act="pick" data-id="${esc(c.id)}">VOTAR</button>` : ''}</div></article>`;
+
+function studentView(a){
+  const pre = preview ? '<div class="box prev"><span>VISTA PREVIA: así lo ven los alumnos. No se guardan votos.</span><button data-act="back">VOLVER AL PANEL</button></div>' : '';
+  const open = a.abierta || preview;
+  if (step === 'vote' && open){
+    const cs = cands();
+    return pre + '<p class="lead">&gt; Elegí un sujeto. El voto es único y no se puede cambiar.</p>' + (cs.length ? `<div class="grid">${cs.map(c => card(c, true)).join('')}</div>` : '<div class="box">No hay candidatos cargados todavía.</div>');
+  }
+  if (step === 'done') return pre + `<div class="box"><h2>VOTO REGISTRADO</h2><p>&gt; Tu código quedó inactivo. Gracias por participar.</p>${a.resultados ? resultsHtml() : '<p class="dim">&gt; Los resultados se revelarán cuando el administrador lo decida.</p>'}${preview ? '' : '<div class="row"><button data-act="exit">SALIR</button></div>'}</div>`;
+  if (!open) return pre + `<div class="box"><h2>VOTACIÓN CERRADA</h2><p class="dim">&gt; El acceso todavía no está habilitado.</p></div>${a.resultados ? `<div class="box"><h2>RESULTADOS</h2>${resultsHtml()}</div>` : ''}`;
+  return pre + `<form class="box" data-form="login"><label for="codeIn">&gt; CÓDIGO DE ACCESO</label><input id="codeIn" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="9" placeholder="XXXX-XXXX"><button>ENTRAR</button>${err ? `<p class="err">&gt; ${esc(err)}</p>` : ''}</form>`;
+}
+
+function adminView(a){
+  const cs = cands(), used = new Set(state.votos.map(v => v.id)), codes = [...state.codigos].sort((x, y) => (x.t || 0) - (y.t || 0));
+  return `<div class="box"><h2>ESTADO</h2>
+    <label class="chk"><input type="checkbox" data-chg="abierta" ${a.abierta ? 'checked' : ''}> Votación abierta</label>
+    <label class="chk"><input type="checkbox" data-chg="resultados" ${a.resultados ? 'checked' : ''}> Mostrar resultados a los alumnos</label>
+    <label>Título</label><input data-chg="titulo" value="${esc(a.titulo)}" maxlength="60">
+    <label>Subtítulo</label><input data-chg="subtitulo" value="${esc(a.subtitulo)}" maxlength="120">
+    <div class="row"><button data-act="preview">VER COMO ALUMNO</button></div>
+    <p class="dim">${state.votos.length} votos emitidos · ${codes.length} códigos generados · ${store.online ? 'conectado' : 'modo local'}</p></div>
+  <div class="box"><h2>CANDIDATOS</h2>
+    ${cs.map(c => `<div class="crow"><input data-cid="${esc(c.id)}" data-f="codigo" value="${esc(c.codigo)}" maxlength="40" aria-label="Nombre en clave">
+      <input data-cid="${esc(c.id)}" data-f="enlace" value="${esc(c.enlace)}" placeholder="https://… enlace al trabajo" aria-label="Enlace">
+      <input data-cid="${esc(c.id)}" data-f="desc" value="${esc(c.desc)}" placeholder="Descripción (opcional)" maxlength="200" aria-label="Descripción">
+      <button class="ghost" data-act="delc" data-id="${esc(c.id)}">BORRAR</button></div>`).join('') || '<p class="dim">Todavía no hay candidatos.</p>'}
+    <div class="row"><button data-act="addc">+ AGREGAR CANDIDATO</button></div>
+    <p class="dim">Los alumnos ven solo el nombre en clave (no pongas nombres reales).</p></div>
+  <div class="box"><h2>CÓDIGOS DE ACCESO</h2>
+    <p class="dim">Entregá un código a cada alumno. Cada uno sirve para un solo voto.</p>
+    <div class="row"><input id="nCodes" type="number" min="1" max="300" value="10" style="max-width:110px" aria-label="Cantidad"><button data-act="gen">GENERAR</button><button class="ghost" data-act="copyfree">COPIAR DISPONIBLES</button></div>
+    <div class="codes">${codes.map(c => `<span class="${used.has(c.id) ? 'used' : ''}">${fmt(c.id)}</span>`).join('') || '<span class="dim" style="border:0">Sin códigos todavía.</span>'}</div></div>
+  <div class="box"><h2>RESULTADOS EN VIVO</h2>${resultsHtml()}</div>
+  <div class="box danger"><h2>ZONA PELIGROSA</h2><p class="dim">Borra todos los votos. Los códigos vuelven a estar disponibles.</p><button class="ghost" data-act="reset">REINICIAR VOTOS</button></div>`;
+}
+
+function render(){
+  if (typing){ pending = true; return; }
+  const a = A();
+  $('title').textContent = a.titulo; $('sub').textContent = a.subtitulo; document.title = a.titulo;
+  $('adminLink').textContent = isAdmin ? 'salir de admin' : 'acceso admin';
+  $('app').innerHTML = view === 'admin' ? adminView(a) : studentView(a);
+}
+
+/* ---------- Acciones ---------- */
+async function login(){
+  const code = $('codeIn').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  err = '';
+  if (code.length !== 8) err = 'Código inválido.';
+  else try { const r = await store.check(code); if (!r.valid) err = 'Código no reconocido.'; else if (r.voted) err = 'Este código ya fue utilizado.'; else { session = code; step = 'vote'; } }
+  catch(e){ err = 'Error de conexión.'; }
+  render();
+}
+async function doVote(){
+  const id = confirmId; $('dlg').close();
+  if (preview){ step = 'done'; render(); return; }
+  try { await store.vote(session, id); step = 'done'; err = ''; }
+  catch(e){ err = 'Este código ya fue usado o no es válido.'; step = 'login'; }
+  render();
+}
+async function copy(txt){ try { await navigator.clipboard.writeText(txt); alert('Copiado.'); } catch(e){ prompt('Copiá los códigos:', txt); } }
+
+async function act(a, t){
+  try {
+    if (a === 'pick'){ confirmId = t.dataset.id; const c = cands().find(x => x.id === confirmId); $('dlgTxt').textContent = '¿Confirmás tu voto por ' + c.codigo + '? No se puede cambiar.'; $('dlg').showModal(); }
+    else if (a === 'exit'){ step = 'login'; session = ''; render(); }
+    else if (a === 'preview'){ view = 'alumno'; preview = true; step = 'vote'; session = 'PREVIA'; render(); scrollTo(0, 0); }
+    else if (a === 'back'){ view = 'admin'; preview = false; step = 'login'; render(); }
+    else if (a === 'addc'){ await store.saveCand(null, {orden: Date.now(), codigo: 'SUJETO ' + String(state.candidatos.length + 1).padStart(2, '0'), enlace: '', desc: ''}); }
+    else if (a === 'delc'){ if (confirm('¿Borrar este candidato?')) await store.delCand(t.dataset.id); }
+    else if (a === 'gen'){
+      const n = Math.max(1, Math.min(300, +$('nCodes').value || 1)), have = new Set(state.codigos.map(c => c.id)), out = [];
+      while (out.length < n){ const c = genCode(); if (!have.has(c) && !out.includes(c)) out.push(c); }
+      await store.addCodes(out);
+    }
+    else if (a === 'copyfree'){ const used = new Set(state.votos.map(v => v.id)); copy(state.codigos.filter(c => !used.has(c.id)).map(c => fmt(c.id)).join('\n')); }
+    else if (a === 'reset'){ if (confirm('¿Borrar TODOS los votos? Los códigos volverán a estar disponibles.')) await store.resetVotes(); }
+  } catch(e){ fail(e); }
+}
+async function chg(t){
+  try {
+    if (t.dataset.cid){ let v = t.value.trim(); if (t.dataset.f === 'enlace') v = cleanUrl(v); await store.saveCand(t.dataset.cid, {[t.dataset.f]: v}); }
+    else { const k = t.dataset.chg; await store.saveAjustes({[k]: t.type === 'checkbox' ? t.checked : t.value.trim()}); }
+  } catch(e){ fail(e); }
+}
+
+const app = $('app');
+app.addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (t) act(t.dataset.act, t); });
+app.addEventListener('change', e => { if (e.target.dataset.cid || e.target.dataset.chg) chg(e.target); });
+app.addEventListener('submit', e => { e.preventDefault(); login(); });
+app.addEventListener('focusin', e => { if (e.target.matches('input')) typing = true; });
+app.addEventListener('focusout', () => setTimeout(() => { if (!document.activeElement || !app.contains(document.activeElement) || !document.activeElement.matches('input')){ typing = false; if (pending){ pending = false; render(); } } }, 0));
+$('dYes').onclick = doVote;
+$('dNo').onclick = () => $('dlg').close();
+$('adminLink').onclick = () => {
+  if (isAdmin){ isAdmin = false; view = 'alumno'; preview = false; step = 'login'; syncSubs(); render(); return; }
+  const pin = prompt('Clave de administrador:');
+  if (pin === null) return;
+  if (pin === cfg.adminPin){ isAdmin = true; view = 'admin'; syncSubs(); render(); }
+  else alert('Clave incorrecta.');
+};
+
+/* ---------- Inicio ---------- */
+render();
+try {
+  store = await makeStore();
+  sub('ajustes', true); sub('candidatos', true); syncSubs();
+  if (!store.online) status('MODO LOCAL DE PRUEBA: los datos solo existen en este navegador. Completá config.js para compartir la votación.');
+} catch(e){ fail(e); }
+</script>
+</body>
+</html>

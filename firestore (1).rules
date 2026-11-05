@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Muestra de proyectos (sitio anterior) ----
+    match /proyectos/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['curso','titulo','autores','desc','url','img','pin','creado','editado'])
+        && request.resource.data.curso is string
+        && request.resource.data.titulo is string && request.resource.data.titulo.size() > 0 && request.resource.data.titulo.size() <= 100
+        && request.resource.data.desc is string && request.resource.data.desc.size() <= 600
+        && request.resource.data.img is string && request.resource.data.img.size() <= 700000;
+      allow delete: if true;
+    }
+    match /config/{id} {
+      allow read, write: if request.resource == null || (request.resource.data.keys().hasOnly(['c1','c2']));
+    }
+
+    // ---- Sitio de votación ----
+    match /votacion/{id} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['titulo','subtitulo','abierta','resultados']);
+    }
+    match /candidatos/{id} {
+      allow read: if true;
+      allow write: if request.resource == null
+        || (request.resource.data.keys().hasOnly(['orden','codigo','enlace','desc'])
+            && request.resource.data.codigo is string && request.resource.data.codigo.size() <= 40);
+    }
+    match /codigos/{id} {
+      allow read: if true;
+      allow create, delete: if true;
+    }
+    match /votos/{id} {
+      allow read: if true;
+      // Un voto por código: solo se puede crear si el código existe, y nunca modificar.
+      allow create: if exists(/databases/$(database)/documents/codigos/$(id))
+        && request.resource.data.keys().hasOnly(['c','t']);
+      allow delete: if true;
+    }
+  }
+}
